@@ -1,0 +1,1761 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Computational Physics Modeling: 2D Ripple Tank & Wave Interference Simulator</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            obsidian: {
+              950: '#090b0e',
+              900: '#101319',
+              850: '#151a22',
+              800: '#1b222c',
+              700: '#273140',
+            }
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
+      background: transparent;
+      cursor: pointer;
+    }
+    input[type="range"]::-webkit-slider-runnable-track {
+      height: 5px;
+      border-radius: 999px;
+      background: #273140;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 15px;
+      height: 15px;
+      border-radius: 50%;
+      background: #38bdf8;
+      border: 2px solid #090b0e;
+      margin-top: -5px;
+      box-shadow: 0 0 8px rgba(56, 189, 248, 0.55);
+      transition: transform 0.12s ease, background-color 0.12s ease;
+    }
+    input[type="range"]::-webkit-slider-thumb:hover {
+      transform: scale(1.15);
+      background: #7dd3fc;
+    }
+    input[type="range"]::-moz-range-track {
+      height: 5px;
+      border-radius: 999px;
+      background: #273140;
+    }
+    input[type="range"]::-moz-range-thumb {
+      width: 15px;
+      height: 15px;
+      border-radius: 50%;
+      background: #38bdf8;
+      border: 2px solid #090b0e;
+    }
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #101319;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #273140;
+      border-radius: 3px;
+    }
+    canvas {
+      touch-action: none;
+    }
+  </style>
+</head>
+<body class="bg-obsidian-950 text-slate-100 font-sans antialiased min-h-screen flex flex-col selection:bg-sky-500/30 selection:text-sky-200">
+
+  <!-- Top Scientific Symposium Header -->
+  <header class="bg-obsidian-900 border-b border-obsidian-700/80 px-4 py-3 sm:px-6">
+    <div class="max-w-[1640px] mx-auto flex flex-col lg:flex-row lg:items-center lg:justify-between gap-2.5">
+      <div>
+        <div class="flex flex-wrap items-center gap-2 mb-1">
+          <span class="px-2 py-0.5 text-[11px] font-mono font-semibold tracking-wider uppercase rounded bg-obsidian-800 text-sky-300 border border-obsidian-700">
+            PECTAA ICS / FSc Physics
+          </span>
+          <span class="text-xs font-mono text-slate-300">Ripple Tank &amp; Wave Interference Lab</span>
+          <span class="hidden sm:inline text-slate-600">•</span>
+          <span class="hidden sm:inline text-xs font-mono text-emerald-400">v = fλ &nbsp;|&nbsp; ΔS = mλ</span>
+        </div>
+        <h1 class="text-base sm:text-lg md:text-xl font-bold tracking-tight text-white">
+          Computational Physics Modeling: 2D Ripple Tank &amp; Wave Interference Simulator
+        </h1>
+      </div>
+
+      <div class="flex flex-wrap items-center gap-2">
+        <div class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-obsidian-850 border border-obsidian-700 text-xs font-mono">
+          <span id="statusDot" class="w-2 h-2 rounded-full bg-sky-400 animate-ping"></span>
+          <span id="statusText" class="text-slate-300">FDTD SOLVER ACTIVE</span>
+        </div>
+        <button id="btnTheoryModal" type="button" class="px-3.5 py-1.5 rounded-lg bg-sky-500/15 hover:bg-sky-500/25 text-sky-200 border border-sky-500/40 text-xs font-semibold transition flex items-center gap-1.5 shadow-sm">
+          <svg class="w-4 h-4 text-sky-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+          </svg>
+          <span>Formulas (PECTAA)</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Workspace Grid -->
+  <main class="flex-1 max-w-[1640px] w-full mx-auto p-3 sm:p-4 lg:p-5 grid grid-cols-1 lg:grid-cols-12 gap-4">
+
+    <!-- Left / Center Visualization & Oscilloscope Column (8 cols) -->
+    <section class="lg:col-span-8 flex flex-col gap-3 min-w-0">
+
+      <!-- Top Playback & Interactive Canvas Tool Selector Bar -->
+      <div class="bg-obsidian-900 border border-obsidian-700/80 rounded-xl p-2.5 flex flex-wrap items-center justify-between gap-2">
+        <!-- Simulation Transport Controls -->
+        <div class="flex flex-wrap items-center gap-1.5">
+          <button id="btnPlayPause" type="button" class="px-3.5 py-2 rounded-lg bg-sky-500 hover:bg-sky-400 active:bg-sky-600 text-obsidian-950 font-semibold text-xs sm:text-sm transition shadow-lg shadow-sky-500/20 flex items-center gap-1.5">
+            <svg id="iconPlayPause" class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zM7 8a1 1 0 012 0v4a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v4a1 1 0 102 0V8a1 1 0 00-1-1z" clip-rule="evenodd" />
+            </svg>
+            <span id="labelPlayPause">Pause</span>
+          </button>
+
+          <button id="btnStep" type="button" title="Advance 1 FDTD Frame" class="px-2.5 py-2 rounded-lg bg-obsidian-800 hover:bg-obsidian-700 text-slate-200 border border-obsidian-700 font-medium text-xs transition flex items-center gap-1">
+            <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7" />
+            </svg>
+            <span>Step</span>
+          </button>
+
+          <button id="btnClearWaves" type="button" class="px-2.5 py-2 rounded-lg bg-obsidian-800 hover:bg-obsidian-700 text-slate-200 border border-obsidian-700 font-medium text-xs transition">
+            Clear Ripples
+          </button>
+
+          <button id="btnClearWalls" type="button" class="px-2.5 py-2 rounded-lg bg-obsidian-800 hover:bg-obsidian-700 text-rose-300 border border-obsidian-700 font-medium text-xs transition">
+            Clear Walls
+          </button>
+        </div>
+
+        <!-- Brush Size Control (for Barrier / Erase / Poke) -->
+        <div class="flex items-center gap-2 bg-obsidian-850 border border-obsidian-800 rounded-lg px-2.5 py-1.5">
+          <span class="text-[11px] font-mono text-slate-400">Brush:</span>
+          <input id="sliderBrush" type="range" min="1" max="12" step="1" value="3" class="w-20" />
+          <span id="labelBrush" class="text-[11px] font-mono text-sky-300 w-7 text-right">3px</span>
+        </div>
+      </div>
+
+      <!-- Interactive Canvas Tool Mode Selector Ribbon -->
+      <div class="bg-obsidian-900 border border-obsidian-700/80 rounded-xl p-2 flex flex-wrap items-center justify-between gap-2">
+        <div class="flex flex-wrap items-center gap-1.5" role="group" aria-label="Canvas Interaction Tools">
+          <button type="button" data-tool="poke" class="tool-btn px-3 py-1.5 rounded-lg text-xs font-medium transition flex items-center gap-1.5 bg-sky-500/20 text-sky-300 border border-sky-500/50">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5" /></svg>
+            <span>1. Poke / Splash</span>
+          </button>
+
+          <button type="button" data-tool="source" class="tool-btn px-3 py-1.5 rounded-lg text-xs font-medium transition flex items-center gap-1.5 bg-obsidian-850 text-slate-300 border border-obsidian-700 hover:bg-obsidian-800">
+            <svg class="w-3.5 h-3.5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            <span>2. Move / Add Source</span>
+          </button>
+
+          <button type="button" data-tool="wall" class="tool-btn px-3 py-1.5 rounded-lg text-xs font-medium transition flex items-center gap-1.5 bg-obsidian-850 text-slate-300 border border-obsidian-700 hover:bg-obsidian-800">
+            <svg class="w-3.5 h-3.5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
+            <span>3. Draw Barrier</span>
+          </button>
+
+          <button type="button" data-tool="erase" class="tool-btn px-3 py-1.5 rounded-lg text-xs font-medium transition flex items-center gap-1.5 bg-obsidian-850 text-slate-300 border border-obsidian-700 hover:bg-obsidian-800">
+            <svg class="w-3.5 h-3.5 text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+            <span>4. Erase Barrier</span>
+          </button>
+
+          <button type="button" data-tool="probe" class="tool-btn px-3 py-1.5 rounded-lg text-xs font-medium transition flex items-center gap-1.5 bg-obsidian-850 text-slate-300 border border-obsidian-700 hover:bg-obsidian-800">
+            <svg class="w-3.5 h-3.5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" /></svg>
+            <span>5. Place Probe</span>
+          </button>
+        </div>
+
+        <span id="toolHintText" class="text-[11px] font-mono text-slate-400 px-1">
+          Click or drag water to create circular wave impulses
+        </span>
+      </div>
+
+      <!-- Main FDTD Ripple Tank Viewport -->
+      <div id="tankWrapper" class="relative w-full aspect-[3/2] max-h-[540px] bg-obsidian-900 border border-obsidian-700/80 rounded-xl overflow-hidden shadow-2xl">
+        <canvas id="tankCanvas" class="w-full h-full block cursor-crosshair"></canvas>
+
+        <!-- Top-Left Grid & Boundary HUD Badge -->
+        <div class="absolute top-3 left-3 bg-obsidian-950/80 backdrop-blur-md border border-obsidian-700/80 rounded-lg px-2.5 py-1.5 text-[11px] font-mono text-slate-300 pointer-events-none select-none flex items-center gap-3">
+          <span>Grid: <strong class="text-sky-300">384×256</strong></span>
+          <span class="text-slate-600">|</span>
+          <span>Boundary: <strong id="hudBoundary" class="text-emerald-300">Mur Absorbing</strong></span>
+        </div>
+
+        <!-- Top-Right Dynamic Color Scale Legend -->
+        <div id="paletteLegend" class="absolute top-3 right-3 bg-obsidian-950/80 backdrop-blur-md border border-obsidian-700/80 rounded-lg p-2 text-[10px] font-mono pointer-events-none select-none w-36">
+          <div id="legendTitle" class="text-slate-300 font-semibold mb-1 text-center">Classic Caustics</div>
+          <div id="legendBar" class="h-2 w-full rounded bg-gradient-to-r from-[#04182b] via-[#0284c7] to-[#e0f2fe]"></div>
+          <div id="legendLabels" class="flex justify-between text-slate-400 mt-1">
+            <span>Trough</span>
+            <span>Node</span>
+            <span>Crest</span>
+          </div>
+        </div>
+
+        <!-- Doppler Telemetry Overlay (Visible during Moving Source / Doppler preset) -->
+        <div id="dopplerHud" class="hidden absolute bottom-3 left-3 bg-obsidian-950/85 backdrop-blur-md border border-amber-500/40 rounded-lg p-2.5 text-[11px] font-mono space-y-1 pointer-events-none select-none shadow-lg">
+          <div class="text-amber-300 font-semibold flex items-center gap-1.5">
+            <span class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+            <span>DOPPLER EFFECT TELEMETRY</span>
+          </div>
+          <div class="grid grid-cols-2 gap-x-4 gap-y-0.5 text-slate-300">
+            <span>Source Speed (vₛ):</span>
+            <span id="dopVs" class="text-white font-semibold">0.0 cm/s</span>
+            <span>Mach Ratio (vₛ/c):</span>
+            <span id="dopMach" class="text-amber-300 font-semibold">0.00</span>
+            <span>Ahead Freq (f₊):</span>
+            <span id="dopFAhead" class="text-emerald-300 font-semibold">0.0 Hz</span>
+            <span>Behind Freq (f₋):</span>
+            <span id="dopFBehind" class="text-sky-300 font-semibold">0.0 Hz</span>
+          </div>
+        </div>
+
+        <!-- Toast Banner -->
+        <div id="toastPill" class="hidden absolute bottom-3 right-3 bg-obsidian-850/95 border border-sky-500/40 text-sky-200 px-3 py-1.5 rounded-full text-xs font-medium shadow-xl">
+          Updated
+        </div>
+      </div>
+
+      <!-- Bottom Row: Live Physics Telemetry + Real-Time Probe Oscilloscope -->
+      <div class="grid grid-cols-1 md:grid-cols-12 gap-3">
+
+        <!-- Live Physics Telemetry Card (6 cols) -->
+        <div class="md:col-span-6 bg-obsidian-900 border border-obsidian-700/80 rounded-xl p-3.5 flex flex-col justify-between">
+          <div class="flex items-center justify-between mb-2">
+            <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-400">PECTAA Wave Telemetry</h2>
+            <span id="telFps" class="text-[11px] font-mono text-emerald-400">60 FPS</span>
+          </div>
+
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 font-mono">
+            <div class="bg-obsidian-850 border border-obsidian-800 rounded-lg p-2">
+              <div class="text-[10px] text-slate-400">Frequency (f)</div>
+              <div id="telFreq" class="text-sm font-bold text-sky-300">6.0 Hz</div>
+            </div>
+            <div class="bg-obsidian-850 border border-obsidian-800 rounded-lg p-2">
+              <div class="text-[10px] text-slate-400">Wave Speed (v)</div>
+              <div id="telSpeed" class="text-sm font-bold text-white">24.0 cm/s</div>
+            </div>
+            <div class="bg-obsidian-850 border border-obsidian-800 rounded-lg p-2">
+              <div class="text-[10px] text-amber-400">Wavelength (λ)</div>
+              <div id="telLambda" class="text-sm font-bold text-amber-300">4.00 cm</div>
+            </div>
+            <div class="bg-obsidian-850 border border-obsidian-800 rounded-lg p-2">
+              <div class="text-[10px] text-emerald-400">Period (T = 1/f)</div>
+              <div id="telPeriod" class="text-sm font-bold text-emerald-300">0.17 s</div>
+            </div>
+          </div>
+
+          <div class="mt-2.5 pt-2 border-t border-obsidian-800/80 flex flex-wrap items-center justify-between gap-2 text-[11px] font-mono text-slate-400">
+            <span id="telPresetMetricLabel">Probe Path Diff: <strong id="telPresetMetricVal" class="text-purple-300">ΔS = 0.00 λ (Antinode)</strong></span>
+            <span>Sources: <span id="telSourceCount" class="text-sky-300 font-semibold">2</span>/6</span>
+          </div>
+        </div>
+
+        <!-- Live Probe Oscilloscope Card (6 cols) -->
+        <div class="md:col-span-6 bg-obsidian-900 border border-obsidian-700/80 rounded-xl p-3.5 flex flex-col justify-between">
+          <div class="flex items-center justify-between mb-1.5">
+            <div class="flex items-center gap-1.5">
+              <span class="w-2 h-2 rounded-full bg-purple-400"></span>
+              <h2 class="text-xs font-semibold uppercase tracking-wider text-slate-300">Probe Oscilloscope u(t)</h2>
+            </div>
+            <div class="flex items-center gap-3 font-mono text-[11px]">
+              <span class="text-slate-400">u: <strong id="probeInstVal" class="text-purple-300">0.00</strong></span>
+              <span class="text-slate-400">Peak: <strong id="probePeakVal" class="text-sky-300">0.00</strong></span>
+            </div>
+          </div>
+
+          <div class="relative w-full h-20 bg-obsidian-950 border border-obsidian-800 rounded-lg overflow-hidden">
+            <canvas id="scopeCanvas" class="w-full h-full block"></canvas>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- Right Control Console: Presets, Wave Parameters, Sources & Rendering (4 cols) -->
+    <aside class="lg:col-span-4 flex flex-col gap-3.5">
+
+      <!-- 1. One-Click Physics Lab Presets -->
+      <div class="bg-obsidian-900 border border-obsidian-700/80 rounded-xl p-3.5 space-y-2.5">
+        <div class="flex items-center justify-between">
+          <h2 class="text-xs font-bold uppercase tracking-wider text-sky-400 flex items-center gap-1.5">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
+            </svg>
+            <span>Physics Lab Experiments</span>
+          </h2>
+          <span class="text-[10px] font-mono text-slate-400">6 Presets</span>
+        </div>
+
+        <div class="grid grid-cols-2 gap-1.5">
+          <button type="button" data-preset="twoSource" class="preset-btn text-left p-2 rounded-lg bg-sky-500/15 border border-sky-500/50 text-sky-200 transition">
+            <div class="text-xs font-semibold">1. Two-Source</div>
+            <div class="text-[10px] text-slate-400">Nodal &amp; Antinodal Fringes</div>
+          </button>
+
+          <button type="button" data-preset="doubleSlit" class="preset-btn text-left p-2 rounded-lg bg-obsidian-850 hover:bg-obsidian-800 border border-obsidian-700 text-slate-200 transition">
+            <div class="text-xs font-semibold">2. Double-Slit</div>
+            <div class="text-[10px] text-slate-400">Young's Wave Diffraction</div>
+          </button>
+
+          <button type="button" data-preset="singleSlit" class="preset-btn text-left p-2 rounded-lg bg-obsidian-850 hover:bg-obsidian-800 border border-obsidian-700 text-slate-200 transition">
+            <div class="text-xs font-semibold">3. Single-Slit</div>
+            <div class="text-[10px] text-slate-400">Huygens' Wavefront Spread</div>
+          </button>
+
+          <button type="button" data-preset="doppler" class="preset-btn text-left p-2 rounded-lg bg-obsidian-850 hover:bg-obsidian-800 border border-obsidian-700 text-slate-200 transition">
+            <div class="text-xs font-semibold">4. Doppler Effect</div>
+            <div class="text-[10px] text-slate-400">Moving Source Shift</div>
+          </button>
+
+          <button type="button" data-preset="lloydsMirror" class="preset-btn text-left p-2 rounded-lg bg-obsidian-850 hover:bg-obsidian-800 border border-obsidian-700 text-slate-200 transition">
+            <div class="text-xs font-semibold">5. Lloyd's Mirror</div>
+            <div class="text-[10px] text-slate-400">Virtual Image Interference</div>
+          </button>
+
+          <button type="button" data-preset="parabolic" class="preset-btn text-left p-2 rounded-lg bg-obsidian-850 hover:bg-obsidian-800 border border-obsidian-700 text-slate-200 transition">
+            <div class="text-xs font-semibold">6. Parabolic Focus</div>
+            <div class="text-[10px] text-slate-400">Wavefront Convergence</div>
+          </button>
+        </div>
+
+        <p id="presetDescription" class="text-[11px] text-slate-300 bg-obsidian-850/90 border border-obsidian-800 rounded-lg p-2 leading-relaxed">
+          Two coherent point sources oscillate in phase, creating constructive antinodal rays and destructive nodal lines.
+        </p>
+      </div>
+
+      <!-- 2. Wave & Medium Parameters -->
+      <div class="bg-obsidian-900 border border-obsidian-700/80 rounded-xl p-3.5 space-y-3.5">
+        <h2 class="text-xs font-bold uppercase tracking-wider text-slate-300 border-b border-obsidian-800 pb-2">
+          Wave &amp; Medium Parameters
+        </h2>
+
+        <!-- Oscillation Frequency f -->
+        <div class="space-y-1">
+          <div class="flex justify-between text-xs">
+            <label for="sliderFreq" class="text-slate-300 font-medium">Oscillator Frequency (<span class="font-mono text-sky-300">f</span>)</label>
+            <span id="valFreq" class="font-mono text-sky-300 font-semibold">6.0 Hz</span>
+          </div>
+          <input id="sliderFreq" type="range" min="1.5" max="14.0" step="0.5" value="6.0" class="w-full" />
+        </div>
+
+        <!-- Wave Propagation Speed c -->
+        <div class="space-y-1">
+          <div class="flex justify-between text-xs">
+            <label for="sliderSpeed" class="text-slate-300 font-medium">Wave Speed (<span class="font-mono text-sky-300">v</span>)</label>
+            <span id="valSpeed" class="font-mono text-white font-semibold">24.0 cm/s</span>
+          </div>
+          <input id="sliderSpeed" type="range" min="10.0" max="32.0" step="0.5" value="24.0" class="w-full" />
+        </div>
+
+        <!-- Phase Difference Δφ -->
+        <div class="space-y-1">
+          <div class="flex justify-between text-xs">
+            <label for="sliderPhase" class="text-slate-300 font-medium">Source Phase Offset (<span class="font-mono text-amber-300">Δφ</span>)</label>
+            <span id="valPhase" class="font-mono text-amber-300 font-semibold">0°</span>
+          </div>
+          <input id="sliderPhase" type="range" min="0" max="360" step="15" value="0" class="w-full" />
+        </div>
+
+        <!-- Viscous Damping -->
+        <div class="space-y-1">
+          <div class="flex justify-between text-xs">
+            <label for="sliderDamping" class="text-slate-300 font-medium">Medium Damping (<span class="font-mono text-slate-400">γ</span>)</label>
+            <span id="valDamping" class="font-mono text-slate-300">0.0015</span>
+          </div>
+          <input id="sliderDamping" type="range" min="0" max="0.015" step="0.0005" value="0.0015" class="w-full" />
+        </div>
+
+        <!-- Doppler Source Speed (Contextual Slider) -->
+        <div id="dopplerSpeedControl" class="hidden space-y-1 pt-1 border-t border-obsidian-800">
+          <div class="flex justify-between text-xs">
+            <label for="sliderSourceSpeed" class="text-amber-300 font-medium">Moving Source Speed (<span class="font-mono">vₛ</span>)</label>
+            <span id="valSourceSpeed" class="font-mono text-amber-300 font-semibold">10.0 cm/s</span>
+          </div>
+          <input id="sliderSourceSpeed" type="range" min="0" max="24.0" step="0.5" value="10.0" class="w-full" />
+        </div>
+
+        <!-- Plane Wave Generator Toggle -->
+        <div class="flex items-center justify-between pt-1 border-t border-obsidian-800">
+          <span class="text-xs font-medium text-slate-300">Left Plane-Wave Emitter</span>
+          <label class="relative inline-flex items-center cursor-pointer">
+            <input id="chkPlaneWave" type="checkbox" class="sr-only peer" />
+            <div class="w-9 h-5 bg-obsidian-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-slate-300 after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-sky-500"></div>
+          </label>
+        </div>
+      </div>
+
+      <!-- 3. Visualization Palette, Boundary Mode & Active Sources -->
+      <div class="bg-obsidian-900 border border-obsidian-700/80 rounded-xl p-3.5 space-y-3">
+        <!-- Color Palette Selector -->
+        <div class="space-y-1.5">
+          <label for="selectPalette" class="block text-xs font-semibold uppercase tracking-wider text-slate-400">
+            Optical Visualization Mode
+          </label>
+          <select id="selectPalette" class="w-full bg-obsidian-850 border border-obsidian-700 rounded-lg px-2.5 py-2 text-xs font-medium text-white focus:outline-none focus:border-sky-500">
+            <option value="classic">1. Classic Ripple Tank (Water Caustics)</option>
+            <option value="phase">2. Phase Diverging (+Crest / −Trough)</option>
+            <option value="intensity">3. Wave Intensity / Energy (⟨u²⟩)</option>
+            <option value="schlieren">4. Optical Schlieren (Wavefront Gradient)</option>
+          </select>
+        </div>
+
+        <!-- Tank Boundary Condition -->
+        <div class="space-y-1.5">
+          <span class="block text-xs font-semibold uppercase tracking-wider text-slate-400">
+            Tank Perimeter Boundary
+          </span>
+          <div class="grid grid-cols-2 gap-1.5">
+            <button id="btnBoundAbsorb" type="button" class="py-1.5 px-2 rounded-lg bg-emerald-500/15 border border-emerald-500/50 text-emerald-300 text-xs font-medium transition">
+              Absorbing (Open)
+            </button>
+            <button id="btnBoundReflect" type="button" class="py-1.5 px-2 rounded-lg bg-obsidian-850 hover:bg-obsidian-800 border border-obsidian-700 text-slate-300 text-xs font-medium transition">
+              Reflective Walls
+            </button>
+          </div>
+        </div>
+
+        <!-- Point Sources Manager -->
+        <div class="space-y-1.5 pt-1 border-t border-obsidian-800">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-semibold uppercase tracking-wider text-slate-400">Active Point Sources</span>
+            <button id="btnAddSource" type="button" class="text-[11px] font-mono text-sky-400 hover:text-sky-300 underline">
+              + Add Source
+            </button>
+          </div>
+          <div id="sourceListContainer" class="space-y-1 max-h-24 overflow-y-auto pr-0.5">
+            <!-- Dynamically populated source pills -->
+          </div>
+        </div>
+      </div>
+
+    </aside>
+  </main>
+
+  <!-- PECTAA Syllabus Formulas & Computational Engine Modal -->
+  <div id="theoryModal" class="hidden fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-obsidian-900 border border-obsidian-700 rounded-2xl max-w-2xl w-full max-h-[88vh] overflow-y-auto p-5 sm:p-6 shadow-2xl space-y-4">
+      <div class="flex items-center justify-between border-b border-obsidian-800 pb-3">
+        <div>
+          <span class="text-[10px] font-mono uppercase tracking-wider text-sky-400">PECTAA ICS / FSc Physics Curriculum</span>
+          <h3 class="text-lg font-bold text-white">Waves &amp; Physical Optics — Core Formulas</h3>
+        </div>
+        <button id="closeTheoryModal" type="button" class="p-1.5 rounded-lg bg-obsidian-800 hover:bg-obsidian-700 text-slate-300" aria-label="Close Formulas Modal">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
+
+      <!-- Primary Tier: Concise PECTAA Syllabus Equations -->
+      <div class="space-y-2.5">
+        <p class="text-xs sm:text-sm text-slate-300 leading-relaxed">
+          Key algebraic wave relations demonstrated in this ripple tank lab (Ch. 7 &amp; Ch. 8 — Waves and Physical Optics):
+        </p>
+
+        <div class="bg-obsidian-950 border border-obsidian-800 rounded-xl divide-y divide-obsidian-800/80 font-mono text-xs sm:text-[13px]">
+          <div class="p-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
+            <span class="text-slate-400 font-sans text-xs">1. Fundamental Wave Equation</span>
+            <span class="text-sky-300 font-semibold">v = f λ &nbsp;&nbsp;(T = 1 / f)</span>
+          </div>
+
+          <div class="p-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
+            <span class="text-slate-400 font-sans text-xs">2. Constructive Interference (Antinodes)</span>
+            <span class="text-emerald-300 font-semibold">ΔS = mλ &nbsp;&nbsp;(m = 0, 1, 2, …)</span>
+          </div>
+
+          <div class="p-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
+            <span class="text-slate-400 font-sans text-xs">3. Destructive Interference (Nodes)</span>
+            <span class="text-rose-300 font-semibold">ΔS = (m + ½)λ &nbsp;&nbsp;(m = 0, 1, 2, …)</span>
+          </div>
+
+          <div class="p-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
+            <span class="text-slate-400 font-sans text-xs">4. Young's Double-Slit Fringe Spacing</span>
+            <span class="text-amber-300 font-semibold">Δy = λL / d</span>
+          </div>
+
+          <div class="p-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1">
+            <span class="text-slate-400 font-sans text-xs">5. Doppler Effect (Moving Source)</span>
+            <span class="text-purple-300 font-semibold">f′ = [ v / (v ∓ vₛ) ] · f</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Secondary Tier: Collapsible Computational Physics Drawer -->
+      <details class="group bg-obsidian-950/70 border border-obsidian-800 rounded-xl overflow-hidden">
+        <summary class="cursor-pointer select-none px-4 py-2.5 flex items-center justify-between text-xs font-mono text-slate-300 hover:bg-obsidian-850 transition">
+          <span class="flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full bg-sky-400"></span>
+            <span class="font-semibold">Computational Engine: 2D FDTD Solver (Technical Notes)</span>
+          </span>
+          <span class="text-slate-400 group-open:rotate-180 transition-transform">▼</span>
+        </summary>
+        <div class="px-4 pb-3.5 pt-2 border-t border-obsidian-800/80 space-y-2 text-xs text-slate-300">
+          <p class="leading-relaxed text-slate-400">
+            Rather than pre-computed sine overlays, the simulation solves the 2D scalar wave equation (<span class="font-mono text-slate-200">∂²u/∂t² = v²∇²u</span>) in real time across a <span class="font-mono text-sky-300">384 × 256</span> grid using an explicit leapfrog Finite-Difference Time-Domain (FDTD) stencil:
+          </p>
+          <div class="bg-obsidian-900 border border-obsidian-800 rounded-lg p-3 font-mono text-[11px] space-y-1.5 overflow-x-auto">
+            <div class="text-slate-400">// 2D FDTD Leapfrog Stencil</div>
+            <div class="text-sky-300">u[i,j]ⁿ⁺¹ = 2u[i,j]ⁿ − u[i,j]ⁿ⁻¹ + C²(u[i+1,j]ⁿ + u[i−1,j]ⁿ + u[i,j+1]ⁿ + u[i,j−1]ⁿ − 4u[i,j]ⁿ)</div>
+            <div class="text-slate-400 pt-1">// CFL Stability Condition &amp; Mur Absorbing Boundary</div>
+            <div class="text-emerald-300">C = v · Δt / Δx ≤ 1 / √2 ≈ 0.707 &nbsp;|&nbsp; u[0,j]ⁿ⁺¹ = u[1,j]ⁿ + ((C−1)/(C+1))(u[1,j]ⁿ⁺¹ − u[0,j]ⁿ)</div>
+          </div>
+        </div>
+      </details>
+    </div>
+  </div>
+
+  <!-- FDTD Wave Engine, Presets, Canvas Renderer & Oscilloscope Script -->
+  <script>
+    /**
+     * ============================================================================
+     * 1. 2D FINITE-DIFFERENCE TIME-DOMAIN (FDTD) WAVE SOLVER
+     * ============================================================================
+     */
+    const NX = 384; // Grid width (cells)
+    const NY = 256; // Grid height (cells)
+    const TOTAL_CELLS = NX * NY;
+    const DX = 0.25; // Physical spatial step per cell (cm) -> Tank is 96 cm x 64 cm
+
+    const WaveSolver = {
+      // Typed arrays for zero-GC high-FPS numerical stepping
+      uPrev: new Float32Array(TOTAL_CELLS),
+      uCurr: new Float32Array(TOTAL_CELLS),
+      uNext: new Float32Array(TOTAL_CELLS),
+      uEnergy: new Float32Array(TOTAL_CELLS), // Exponentially smoothed u^2 for intensity view
+      wallMask: new Uint8Array(TOTAL_CELLS),   // 0 = water, 1 = solid barrier
+
+      // Physical & Numerical Parameters
+      freq: 6.0,          // Hz
+      waveSpeed: 24.0,    // cm/s
+      phaseOffsetDeg: 0,  // Phase offset applied to Source #2 (degrees)
+      damping: 0.0015,    // Viscous fluid damping
+      boundaryMode: 'absorbing', // 'absorbing' | 'reflective'
+      planeWaveEnabled: false,
+      courant: 0.55,
+      simTime: 0,
+
+      // Point wave sources (up to 6)
+      sources: [],
+      nextSourceId: 1,
+
+      // Virtual displacement probe sensor
+      probe: {
+        gx: 260,
+        gy: 128,
+        history: new Float32Array(240),
+        head: 0,
+        instValue: 0,
+        peakValue: 0
+      },
+
+      init() {
+        this.clearWaves();
+        this.clearWalls();
+      },
+
+      clearWaves() {
+        this.uPrev.fill(0);
+        this.uCurr.fill(0);
+        this.uNext.fill(0);
+        this.uEnergy.fill(0);
+        this.simTime = 0;
+        this.probe.history.fill(0);
+        this.probe.instValue = 0;
+        this.probe.peakValue = 0;
+      },
+
+      clearWalls() {
+        this.wallMask.fill(0);
+      },
+
+      /** Adds an oscillating point source at grid coordinates (gx, gy) */
+      addSource(gx, gy, options = {}) {
+        if (this.sources.length >= 6) return null;
+        const src = {
+          id: this.nextSourceId++,
+          gx: Math.max(8, Math.min(NX - 9, gx)),
+          gy: Math.max(8, Math.min(NY - 9, gy)),
+          phaseDeg: options.phaseDeg || 0,
+          amplitude: options.amplitude || 1.35,
+          moving: Boolean(options.moving),
+          speedCmPerSec: options.speedCmPerSec || 10.0,
+          dirX: options.dirX || 1
+        };
+        this.sources.push(src);
+        return src;
+      },
+
+      removeSource(id) {
+        this.sources = this.sources.filter(s => s.id !== id);
+      },
+
+      /** Paints or erases a circular barrier brush onto wallMask */
+      paintWall(cx, cy, radius, isWall = true) {
+        const r2 = radius * radius;
+        const minX = Math.max(2, Math.floor(cx - radius));
+        const maxX = Math.min(NX - 3, Math.ceil(cx + radius));
+        const minY = Math.max(2, Math.floor(cy - radius));
+        const maxY = Math.min(NY - 3, Math.ceil(cy + radius));
+
+        for (let y = minY; y <= maxY; y++) {
+          const dy = y - cy;
+          const row = y * NX;
+          for (let x = minX; x <= maxX; x++) {
+            const dx = x - cx;
+            if (dx * dx + dy * dy <= r2) {
+              const idx = row + x;
+              this.wallMask[idx] = isWall ? 1 : 0;
+              if (isWall) {
+                this.uPrev[idx] = 0;
+                this.uCurr[idx] = 0;
+                this.uNext[idx] = 0;
+                this.uEnergy[idx] = 0;
+              }
+            }
+          }
+        }
+      },
+
+      /** Draws a straight line segment of barrier with optional gaps (slits) */
+      drawBarrierLine(x0, y0, x1, y1, thickness = 2) {
+        const dist = Math.hypot(x1 - x0, y1 - y0);
+        const steps = Math.max(1, Math.ceil(dist));
+        for (let i = 0; i <= steps; i++) {
+          const t = i / steps;
+          this.paintWall(x0 + (x1 - x0) * t, y0 + (y1 - y0) * t, thickness, true);
+        }
+      },
+
+      /** Injects an immediate smooth Gaussian splash impulse at (cx, cy) */
+      injectSplash(cx, cy, radius = 4, strength = 2.4) {
+        const sigma2 = Math.max(1.5, radius * radius * 0.45);
+        const span = Math.ceil(radius * 2.2);
+        const minX = Math.max(2, Math.floor(cx - span));
+        const maxX = Math.min(NX - 3, Math.ceil(cx + span));
+        const minY = Math.max(2, Math.floor(cy - span));
+        const maxY = Math.min(NY - 3, Math.ceil(cy + span));
+
+        for (let y = minY; y <= maxY; y++) {
+          const dy = y - cy;
+          const row = y * NX;
+          for (let x = minX; x <= maxX; x++) {
+            const idx = row + x;
+            if (this.wallMask[idx]) continue;
+            const dx = x - cx;
+            const dist2 = dx * dx + dy * dy;
+            if (dist2 <= span * span) {
+              const impulse = strength * Math.exp(-dist2 / sigma2);
+              this.uCurr[idx] += impulse;
+              this.uPrev[idx] += impulse * 0.85;
+            }
+          }
+        }
+      },
+
+      /** Advances the 2D wave PDE by one stable CFL-bounded time step */
+      stepSubframe(dtStep) {
+        // Compute Courant number C = c * dt / dx, clamped strictly below 0.68 for stability
+        let cNum = (this.waveSpeed * dtStep) / DX;
+        if (cNum > 0.68) {
+          cNum = 0.68;
+          dtStep = (cNum * DX) / this.waveSpeed;
+        }
+        this.courant = cNum;
+        this.simTime += dtStep;
+
+        const c2 = cNum * cNum;
+        const dampFactor = 1.0 - this.damping;
+        const uPrev = this.uPrev;
+        const uCurr = this.uCurr;
+        const uNext = this.uNext;
+        const uEnergy = this.uEnergy;
+        const wall = this.wallMask;
+
+        // 1. Interior FDTD 5-Point Laplacian Update
+        for (let y = 1; y < NY - 1; y++) {
+          const row = y * NX;
+          for (let x = 1; x < NX - 1; x++) {
+            const idx = row + x;
+            if (wall[idx]) {
+              uNext[idx] = 0;
+              continue;
+            }
+
+            const center = uCurr[idx];
+            const laplacian =
+              uCurr[idx - 1] +
+              uCurr[idx + 1] +
+              uCurr[idx - NX] +
+              uCurr[idx + NX] -
+              4.0 * center;
+
+            let nextVal = (2.0 * center - uPrev[idx] + c2 * laplacian) * dampFactor;
+
+            // Soft sponge damping near outer 12-cell border when in Absorbing mode
+            if (this.boundaryMode === 'absorbing') {
+              const distEdge = Math.min(x, NX - 1 - x, y, NY - 1 - y);
+              if (distEdge < 12) {
+                const ratio = (12 - distEdge) / 12;
+                nextVal *= (1.0 - 0.045 * ratio * ratio);
+              }
+            }
+
+            uNext[idx] = nextVal;
+            // Time-averaged wave intensity (u^2)
+            uEnergy[idx] = uEnergy[idx] * 0.985 + nextVal * nextVal * 0.015;
+          }
+        }
+
+        // 2. Perimeter Boundary Conditions
+        if (this.boundaryMode === 'absorbing') {
+          // Mur's 1st-Order Absorbing Boundary Condition on all 4 walls
+          const murCoeff = (cNum - 1.0) / (cNum + 1.0);
+
+          // Left & Right borders
+          for (let y = 1; y < NY - 1; y++) {
+            const row = y * NX;
+            uNext[row] = uCurr[row + 1] + murCoeff * (uNext[row + 1] - uCurr[row]);
+            const rIdx = row + (NX - 1);
+            uNext[rIdx] = uCurr[rIdx - 1] + murCoeff * (uNext[rIdx - 1] - uCurr[rIdx]);
+          }
+          // Top & Bottom borders
+          const botRow = (NY - 1) * NX;
+          const botPrevRow = (NY - 2) * NX;
+          for (let x = 0; x < NX; x++) {
+            uNext[x] = uCurr[NX + x] + murCoeff * (uNext[NX + x] - uCurr[x]);
+            uNext[botRow + x] = uCurr[botPrevRow + x] + murCoeff * (uNext[botPrevRow + x] - uCurr[botRow + x]);
+          }
+        } else {
+          // Hard Reflective Dirichlet Walls (u = 0 at perimeter)
+          const botRow = (NY - 1) * NX;
+          for (let x = 0; x < NX; x++) {
+            uNext[x] = 0;
+            uNext[botRow + x] = 0;
+          }
+          for (let y = 0; y < NY; y++) {
+            const row = y * NX;
+            uNext[row] = 0;
+            uNext[row + NX - 1] = 0;
+          }
+        }
+
+        // 3. Drive Active Point Wave Sources
+        const omega = 2.0 * Math.PI * this.freq;
+        for (let s = 0; s < this.sources.length; s++) {
+          const src = this.sources[s];
+
+          // Handle moving source for Doppler Effect experiment
+          if (src.moving) {
+            const cellsPerSec = src.speedCmPerSec / DX;
+            src.gx += src.dirX * cellsPerSec * dtStep;
+            if (src.gx >= NX - 36) {
+              src.gx = NX - 36;
+              src.dirX = -1;
+            } else if (src.gx <= 36) {
+              src.gx = 36;
+              src.dirX = 1;
+            }
+          }
+
+          // Apply global Phase Offset slider to the 2nd source for live interference tuning
+          const extraPhase = s === 1 ? (this.phaseOffsetDeg * Math.PI) / 180 : (src.phaseDeg * Math.PI) / 180;
+          const val = src.amplitude * Math.sin(omega * this.simTime + extraPhase);
+
+          const ix = Math.round(src.gx);
+          const iy = Math.round(src.gy);
+          const idx = iy * NX + ix;
+          if (!wall[idx]) {
+            uNext[idx] = val;
+          }
+        }
+
+        // 4. Drive Optional Left Plane-Wave Generator
+        if (this.planeWaveEnabled) {
+          const planeVal = 0.85 * Math.sin(omega * this.simTime);
+          const emitX = 14;
+          for (let y = 16; y < NY - 16; y++) {
+            const idx = y * NX + emitX;
+            if (!wall[idx]) {
+              uNext[idx] = planeVal;
+            }
+          }
+        }
+
+        // 5. Rotate FDTD Buffers (uPrev <- uCurr <- uNext)
+        this.uPrev = uCurr;
+        this.uCurr = uNext;
+        this.uNext = uPrev;
+      },
+
+      /** Samples wave displacement at the virtual Probe sensor */
+      sampleProbe() {
+        const px = Math.max(1, Math.min(NX - 2, Math.round(this.probe.gx)));
+        const py = Math.max(1, Math.min(NY - 2, Math.round(this.probe.gy)));
+        const val = this.uCurr[py * NX + px];
+        this.probe.instValue = val;
+        if (Math.abs(val) > this.probe.peakValue) {
+          this.probe.peakValue = Math.abs(val);
+        } else {
+          this.probe.peakValue *= 0.996; // Slow peak hold decay
+        }
+        this.probe.history[this.probe.head] = val;
+        this.probe.head = (this.probe.head + 1) % this.probe.history.length;
+      }
+    };
+
+    /**
+     * ============================================================================
+     * 2. HIGH-FPS IMAGEDATA RENDERER & VECTOR OVERLAYS
+     * ============================================================================
+     */
+    const TankRenderer = {
+      mainCanvas: null,
+      mainCtx: null,
+      offCanvas: null,
+      offCtx: null,
+      imgData: null,
+      pixels32: null,
+
+      palette: 'classic', // 'classic' | 'phase' | 'intensity' | 'schlieren'
+
+      init(canvasEl) {
+        this.mainCanvas = canvasEl;
+        this.mainCtx = canvasEl.getContext('2d');
+
+        // Offscreen 384x256 buffer for direct 32-bit pixel manipulation
+        this.offCanvas = document.createElement('canvas');
+        this.offCanvas.width = NX;
+        this.offCanvas.height = NY;
+        this.offCtx = this.offCanvas.getContext('2d');
+        this.imgData = this.offCtx.createImageData(NX, NY);
+        this.pixels32 = new Uint32Array(this.imgData.data.buffer);
+
+        this.resize();
+      },
+
+      resize() {
+        const rect = this.mainCanvas.parentElement.getBoundingClientRect();
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        this.mainCanvas.width = Math.max(300, Math.floor(rect.width * dpr));
+        this.mainCanvas.height = Math.max(200, Math.floor(rect.height * dpr));
+      },
+
+      /** Renders the FDTD grid into the 32-bit ImageData buffer and draws vector overlays */
+      render() {
+        const uCurr = WaveSolver.uCurr;
+        const uEnergy = WaveSolver.uEnergy;
+        const wall = WaveSolver.wallMask;
+        const pix = this.pixels32;
+        const mode = this.palette;
+
+        // Precompute little-endian ABGR barrier color (#334155 slate-700)
+        const barrierColorABGR = 0xff554133;
+
+        for (let y = 0; y < NY; y++) {
+          const row = y * NX;
+          for (let x = 0; x < NX; x++) {
+            const idx = row + x;
+
+            if (wall[idx]) {
+              pix[idx] = barrierColorABGR;
+              continue;
+            }
+
+            const u = uCurr[idx];
+            let r = 0, g = 0, b = 0;
+
+            if (mode === 'classic') {
+              // Realistic water caustics + directional surface slope specular lighting
+              const uRight = x < NX - 1 ? uCurr[idx + 1] : u;
+              const uDown = y < NY - 1 ? uCurr[idx + NX] : u;
+              const slope = (u - uRight) * 2.4 + (u - uDown) * 2.4;
+              const h = Math.max(-1.4, Math.min(1.4, u));
+              const light = Math.max(-1.0, Math.min(1.2, h * 0.65 + slope));
+
+              r = Math.max(0, Math.min(255, 8 + light * 95 + (light > 0.65 ? (light - 0.65) * 220 : 0)));
+              g = Math.max(0, Math.min(255, 42 + light * 135 + (light > 0.65 ? (light - 0.65) * 180 : 0)));
+              b = Math.max(0, Math.min(255, 78 + light * 155 + (light > 0.65 ? (light - 0.65) * 120 : 0)));
+            } else if (mode === 'phase') {
+              // Phase Diverging: Crimson (+u) | Obsidian (0) | Electric Cyan (-u)
+              const clamped = Math.max(-1.2, Math.min(1.2, u)) / 1.2;
+              if (clamped >= 0) {
+                r = 12 + clamped * 238;
+                g = 15 + clamped * 48;
+                b = 22 + clamped * 76;
+              } else {
+                const neg = -clamped;
+                r = 12 + neg * 28;
+                g = 15 + neg * 182;
+                b = 22 + neg * 230;
+              }
+            } else if (mode === 'intensity') {
+              // Time-averaged Wave Intensity / Energy (u^2) heatmap
+              const intensity = Math.min(1.0, Math.sqrt(uEnergy[idx]) * 2.35);
+              if (intensity < 0.25) {
+                const t = intensity / 0.25;
+                r = 10 + t * 38;
+                g = 12 + t * 14;
+                b = 20 + t * 90;
+              } else if (intensity < 0.55) {
+                const t = (intensity - 0.25) / 0.30;
+                r = 48 + t * 165;
+                g = 26 + t * 24;
+                b = 110 + t * 25;
+              } else if (intensity < 0.85) {
+                const t = (intensity - 0.55) / 0.30;
+                r = 213 + t * 40;
+                g = 50 + t * 145;
+                b = 135 - t * 105;
+              } else {
+                const t = (intensity - 0.85) / 0.15;
+                r = 253;
+                g = 195 + t * 60;
+                b = 30 + t * 210;
+              }
+            } else {
+              // Optical Schlieren: Monochrome directional gradient
+              const uRight = x < NX - 1 ? uCurr[idx + 1] : u;
+              const uDown = y < NY - 1 ? uCurr[idx + NX] : u;
+              const grad = (u - uRight) * 4.5 + (u - uDown) * 4.5;
+              const lum = Math.max(0, Math.min(255, 118 + grad * 135 + u * 35));
+              r = lum * 0.94;
+              g = lum * 0.98;
+              b = lum;
+            }
+
+            // Pack into little-endian ABGR 32-bit integer
+            pix[idx] = (255 << 24) | ((b & 255) << 16) | ((g & 255) << 8) | (r & 255);
+          }
+        }
+
+        this.offCtx.putImageData(this.imgData, 0, 0);
+
+        // Draw offscreen fluid buffer smoothly onto main display canvas
+        const ctx = this.mainCtx;
+        const W = this.mainCanvas.width;
+        const H = this.mainCanvas.height;
+
+        ctx.save();
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+        ctx.drawImage(this.offCanvas, 0, 0, W, H);
+
+        const scaleX = W / NX;
+        const scaleY = H / NY;
+
+        // Draw Plane-Wave Emitter Bar if active
+        if (WaveSolver.planeWaveEnabled) {
+          const ex = 14 * scaleX;
+          ctx.strokeStyle = 'rgba(56, 189, 248, 0.85)';
+          ctx.lineWidth = Math.max(2, scaleX * 1.1);
+          ctx.beginPath();
+          ctx.moveTo(ex, 16 * scaleY);
+          ctx.lineTo(ex, (NY - 16) * scaleY);
+          ctx.stroke();
+        }
+
+        // Draw Oscillating Point Sources
+        const omega = 2.0 * Math.PI * WaveSolver.freq;
+        WaveSolver.sources.forEach((src, index) => {
+          const sx = src.gx * scaleX;
+          const sy = src.gy * scaleY;
+          const extraPhase = index === 1 ? (WaveSolver.phaseOffsetDeg * Math.PI) / 180 : 0;
+          const phaseVal = Math.sin(omega * WaveSolver.simTime + extraPhase);
+
+          // Pulsing phase ring
+          const ringRadius = (6 + (phaseVal + 1) * 3.5) * (scaleX / 2.2);
+          ctx.strokeStyle = phaseVal >= 0 ? 'rgba(251, 191, 36, 0.85)' : 'rgba(56, 189, 248, 0.85)';
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.arc(sx, sy, Math.max(7, ringRadius), 0, Math.PI * 2);
+          ctx.stroke();
+
+          // Core emitter dot
+          ctx.fillStyle = '#fbbf24';
+          ctx.beginPath();
+          ctx.arc(sx, sy, Math.max(4.5, scaleX * 1.4), 0, Math.PI * 2);
+          ctx.fill();
+
+          // Source ID tag
+          ctx.fillStyle = '#090b0e';
+          ctx.font = `bold ${Math.max(10, Math.round(scaleX * 2.5))}px "JetBrains Mono", monospace`;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(`S${index + 1}`, sx, sy - Math.max(13, scaleY * 4.2));
+          ctx.fillStyle = '#fef08a';
+          ctx.fillText(`S${index + 1}`, sx, sy - Math.max(13, scaleY * 4.2));
+
+          // Velocity arrow if source is moving (Doppler mode)
+          if (src.moving && src.speedCmPerSec > 0.2) {
+            const arrowLen = src.dirX * (16 + src.speedCmPerSec * 1.2);
+            ctx.strokeStyle = '#fbbf24';
+            ctx.lineWidth = 2.2;
+            ctx.beginPath();
+            ctx.moveTo(sx, sy);
+            ctx.lineTo(sx + arrowLen, sy);
+            ctx.stroke();
+          }
+        });
+
+        // Draw Virtual Probe Sensor Crosshair
+        const px = WaveSolver.probe.gx * scaleX;
+        const py = WaveSolver.probe.gy * scaleY;
+        const pR = Math.max(8, scaleX * 2.4);
+
+        ctx.strokeStyle = '#c084fc';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(px, py, pR, 0, Math.PI * 2);
+        ctx.moveTo(px - pR - 4, py);
+        ctx.lineTo(px + pR + 4, py);
+        ctx.moveTo(px, py - pR - 4);
+        ctx.lineTo(px, py + pR + 4);
+        ctx.stroke();
+
+        ctx.fillStyle = '#e9d5ff';
+        ctx.font = `600 ${Math.max(10, Math.round(scaleX * 2.4))}px "JetBrains Mono", monospace`;
+        ctx.textAlign = 'left';
+        ctx.fillText('PROBE', px + pR + 5, py + 3);
+
+        ctx.restore();
+      }
+    };
+
+    /**
+     * ============================================================================
+     * 3. REAL-TIME PROBE OSCILLOSCOPE RENDERER
+     * ============================================================================
+     */
+    const Oscilloscope = {
+      canvas: null,
+      ctx: null,
+
+      init(canvasEl) {
+        this.canvas = canvasEl;
+        this.ctx = canvasEl.getContext('2d');
+        this.resize();
+      },
+
+      resize() {
+        const rect = this.canvas.parentElement.getBoundingClientRect();
+        const dpr = Math.min(window.devicePixelRatio || 1, 2);
+        this.canvas.width = Math.max(200, Math.floor(rect.width * dpr));
+        this.canvas.height = Math.max(60, Math.floor(rect.height * dpr));
+      },
+
+      render() {
+        const ctx = this.ctx;
+        const W = this.canvas.width;
+        const H = this.canvas.height;
+        const midY = H * 0.5;
+
+        ctx.fillStyle = '#090b0e';
+        ctx.fillRect(0, 0, W, H);
+
+        // Center zero equilibrium line
+        ctx.strokeStyle = 'rgba(148, 163, 184, 0.22)';
+        ctx.lineWidth = 1;
+        ctx.setLineDash([4, 4]);
+        ctx.beginPath();
+        ctx.moveTo(0, midY);
+        ctx.lineTo(W, midY);
+        ctx.stroke();
+        ctx.setLineDash([]);
+
+        // Plot circular history buffer
+        const hist = WaveSolver.probe.history;
+        const len = hist.length;
+        const head = WaveSolver.probe.head;
+
+        ctx.strokeStyle = '#c084fc';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        for (let i = 0; i < len; i++) {
+          const bufIdx = (head + i) % len;
+          const val = Math.max(-1.4, Math.min(1.4, hist[bufIdx]));
+          const x = (i / (len - 1)) * W;
+          const y = midY - (val / 1.4) * (H * 0.42);
+          if (i === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+      }
+    };
+
+    /**
+     * ============================================================================
+     * 4. PHYSICS LAB PRESETS & UI INTERACTION CONTROLLER
+     * ============================================================================
+     */
+    const LabApp = {
+      isPlaying: true,
+      activeTool: 'poke', // 'poke' | 'source' | 'wall' | 'erase' | 'probe'
+      brushRadius: 3,
+      isPointerDown: false,
+      draggedSource: null,
+      draggingProbe: false,
+      activePreset: 'twoSource',
+
+      // FPS tracking
+      frameCount: 0,
+      lastFpsTime: performance.now(),
+      currentFps: 60,
+
+      presets: {
+        twoSource: {
+          title: 'Two-Source Interference',
+          desc: 'Two coherent point sources oscillate synchronously, generating constructive antinodal maxima and destructive nodal lines. Adjust Phase Offset (Δφ) to steer the interference fringes.',
+          setup() {
+            WaveSolver.clearWaves();
+            WaveSolver.clearWalls();
+            WaveSolver.sources = [];
+            WaveSolver.planeWaveEnabled = false;
+            WaveSolver.boundaryMode = 'absorbing';
+            WaveSolver.freq = 6.0;
+            WaveSolver.waveSpeed = 24.0;
+            WaveSolver.phaseOffsetDeg = 0;
+            WaveSolver.damping = 0.0015;
+
+            WaveSolver.addSource(135, 96);
+            WaveSolver.addSource(135, 160);
+            WaveSolver.probe.gx = 275;
+            WaveSolver.probe.gy = 128;
+          }
+        },
+        doubleSlit: {
+          title: 'Double-Slit Diffraction',
+          desc: 'Incident plane waves strike a barrier pierced by two narrow apertures. Each slit acts as a secondary Huygens point source, producing Young’s interference fringes.',
+          setup() {
+            WaveSolver.clearWaves();
+            WaveSolver.clearWalls();
+            WaveSolver.sources = [];
+            WaveSolver.planeWaveEnabled = true;
+            WaveSolver.boundaryMode = 'absorbing';
+            WaveSolver.freq = 7.5;
+            WaveSolver.waveSpeed = 24.0;
+            WaveSolver.phaseOffsetDeg = 0;
+            WaveSolver.damping = 0.001;
+
+            const barrierX = 130;
+            const slitSep = 36;
+            const slitHalfWidth = 5;
+            const midY = NY / 2;
+
+            WaveSolver.drawBarrierLine(barrierX, 4, barrierX, midY - slitSep / 2 - slitHalfWidth, 2.5);
+            WaveSolver.drawBarrierLine(barrierX, midY - slitSep / 2 + slitHalfWidth, barrierX, midY + slitSep / 2 - slitHalfWidth, 2.5);
+            WaveSolver.drawBarrierLine(barrierX, midY + slitSep / 2 + slitHalfWidth, barrierX, NY - 5, 2.5);
+
+            WaveSolver.probe.gx = 285;
+            WaveSolver.probe.gy = 128;
+          }
+        },
+        singleSlit: {
+          title: 'Single-Slit Diffraction',
+          desc: 'Planar wavefronts pass through a single narrow opening comparable to the wavelength λ, curving outward into semicircular waves in accordance with Huygens’ Principle.',
+          setup() {
+            WaveSolver.clearWaves();
+            WaveSolver.clearWalls();
+            WaveSolver.sources = [];
+            WaveSolver.planeWaveEnabled = true;
+            WaveSolver.boundaryMode = 'absorbing';
+            WaveSolver.freq = 7.0;
+            WaveSolver.waveSpeed = 24.0;
+            WaveSolver.phaseOffsetDeg = 0;
+            WaveSolver.damping = 0.001;
+
+            const barrierX = 130;
+            const midY = NY / 2;
+            const slitHalfWidth = 8;
+
+            WaveSolver.drawBarrierLine(barrierX, 4, barrierX, midY - slitHalfWidth, 2.5);
+            WaveSolver.drawBarrierLine(barrierX, midY + slitHalfWidth, barrierX, NY - 5, 2.5);
+
+            WaveSolver.probe.gx = 270;
+            WaveSolver.probe.gy = 128;
+          }
+        },
+        doppler: {
+          title: 'Doppler Effect (Moving Source)',
+          desc: 'A point source moves horizontally at speed vₛ through the medium. Wavefronts compress ahead (higher observed frequency f₊) and stretch behind (lower frequency f₋).',
+          setup() {
+            WaveSolver.clearWaves();
+            WaveSolver.clearWalls();
+            WaveSolver.sources = [];
+            WaveSolver.planeWaveEnabled = false;
+            WaveSolver.boundaryMode = 'absorbing';
+            WaveSolver.freq = 6.5;
+            WaveSolver.waveSpeed = 22.0;
+            WaveSolver.phaseOffsetDeg = 0;
+            WaveSolver.damping = 0.002;
+
+            WaveSolver.addSource(80, 128, {
+              moving: true,
+              speedCmPerSec: 10.5,
+              dirX: 1,
+              amplitude: 1.4
+            });
+            WaveSolver.probe.gx = 280;
+            WaveSolver.probe.gy = 128;
+          }
+        },
+        lloydsMirror: {
+          title: "Lloyd's Mirror Interference",
+          desc: 'A single point source placed near a horizontal reflective wall interferes with its own phase-inverted reflection, creating a virtual two-source interference pattern.',
+          setup() {
+            WaveSolver.clearWaves();
+            WaveSolver.clearWalls();
+            WaveSolver.sources = [];
+            WaveSolver.planeWaveEnabled = false;
+            WaveSolver.boundaryMode = 'absorbing';
+            WaveSolver.freq = 6.5;
+            WaveSolver.waveSpeed = 24.0;
+            WaveSolver.phaseOffsetDeg = 0;
+            WaveSolver.damping = 0.0015;
+
+            // Horizontal reflective mirror near top
+            WaveSolver.drawBarrierLine(25, 68, NX - 25, 68, 2.5);
+            WaveSolver.addSource(110, 96);
+            WaveSolver.probe.gx = 275;
+            WaveSolver.probe.gy = 115;
+          }
+        },
+        parabolic: {
+          title: 'Parabolic Reflector Focusing',
+          desc: 'Incoming plane waves strike a curved parabolic mirror on the right and reflect inward so all optical path lengths converge simultaneously at the focal point F.',
+          setup() {
+            WaveSolver.clearWaves();
+            WaveSolver.clearWalls();
+            WaveSolver.sources = [];
+            WaveSolver.planeWaveEnabled = true;
+            WaveSolver.boundaryMode = 'absorbing';
+            WaveSolver.freq = 7.5;
+            WaveSolver.waveSpeed = 24.0;
+            WaveSolver.phaseOffsetDeg = 0;
+            WaveSolver.damping = 0.001;
+
+            // Parabolic curve: x = vertexX - (y - midY)^2 / (4 * focalLen)
+            const vertexX = 325;
+            const focalLen = 65;
+            const midY = NY / 2;
+            let prevX = null, prevY = null;
+
+            for (let y = 26; y <= NY - 26; y += 2) {
+              const dy = y - midY;
+              const x = vertexX - (dy * dy) / (4 * focalLen);
+              if (prevX !== null) {
+                WaveSolver.drawBarrierLine(prevX, prevY, x, y, 2.5);
+              }
+              prevX = x;
+              prevY = y;
+            }
+
+            // Place probe directly at geometric focal point F = vertexX - focalLen
+            WaveSolver.probe.gx = vertexX - focalLen;
+            WaveSolver.probe.gy = midY;
+          }
+        }
+      },
+
+      showToast(msg) {
+        const toast = document.getElementById('toastPill');
+        toast.textContent = msg;
+        toast.classList.remove('hidden');
+        clearTimeout(this._toastTimer);
+        this._toastTimer = setTimeout(() => toast.classList.add('hidden'), 2000);
+      },
+
+      loadPreset(key) {
+        const preset = this.presets[key];
+        if (!preset) return;
+        this.activePreset = key;
+        preset.setup();
+
+        // Highlight active preset button
+        document.querySelectorAll('.preset-btn').forEach(btn => {
+          const isMatch = btn.dataset.preset === key;
+          btn.className = isMatch
+            ? 'preset-btn text-left p-2 rounded-lg bg-sky-500/15 border border-sky-500/50 text-sky-200 transition'
+            : 'preset-btn text-left p-2 rounded-lg bg-obsidian-850 hover:bg-obsidian-800 border border-obsidian-700 text-slate-200 transition';
+        });
+
+        document.getElementById('presetDescription').textContent = preset.desc;
+
+        // Toggle Doppler HUD & Speed slider visibility
+        const isDoppler = key === 'doppler';
+        document.getElementById('dopplerHud').classList.toggle('hidden', !isDoppler);
+        document.getElementById('dopplerSpeedControl').classList.toggle('hidden', !isDoppler);
+
+        this.syncControlsFromSolver();
+        this.renderSourceList();
+        this.showToast(`Loaded: ${preset.title}`);
+      },
+
+      syncControlsFromSolver() {
+        document.getElementById('sliderFreq').value = WaveSolver.freq;
+        document.getElementById('valFreq').textContent = `${WaveSolver.freq.toFixed(1)} Hz`;
+
+        document.getElementById('sliderSpeed').value = WaveSolver.waveSpeed;
+        document.getElementById('valSpeed').textContent = `${WaveSolver.waveSpeed.toFixed(1)} cm/s`;
+
+        document.getElementById('sliderPhase').value = WaveSolver.phaseOffsetDeg;
+        document.getElementById('valPhase').textContent = `${WaveSolver.phaseOffsetDeg}°`;
+
+        document.getElementById('sliderDamping').value = WaveSolver.damping;
+        document.getElementById('valDamping').textContent = WaveSolver.damping.toFixed(4);
+
+        document.getElementById('chkPlaneWave').checked = WaveSolver.planeWaveEnabled;
+
+        if (WaveSolver.sources.length > 0 && WaveSolver.sources[0].moving) {
+          const vs = WaveSolver.sources[0].speedCmPerSec;
+          document.getElementById('sliderSourceSpeed').value = vs;
+          document.getElementById('valSourceSpeed').textContent = `${vs.toFixed(1)} cm/s`;
+        }
+
+        this.updateBoundaryButtons();
+      },
+
+      updateBoundaryButtons() {
+        const isAbs = WaveSolver.boundaryMode === 'absorbing';
+        const btnAbs = document.getElementById('btnBoundAbsorb');
+        const btnRef = document.getElementById('btnBoundReflect');
+
+        btnAbs.className = isAbs
+          ? 'py-1.5 px-2 rounded-lg bg-emerald-500/15 border border-emerald-500/50 text-emerald-300 text-xs font-medium transition'
+          : 'py-1.5 px-2 rounded-lg bg-obsidian-850 hover:bg-obsidian-800 border border-obsidian-700 text-slate-300 text-xs font-medium transition';
+
+        btnRef.className = !isAbs
+          ? 'py-1.5 px-2 rounded-lg bg-amber-500/15 border border-amber-500/50 text-amber-300 text-xs font-medium transition'
+          : 'py-1.5 px-2 rounded-lg bg-obsidian-850 hover:bg-obsidian-800 border border-obsidian-700 text-slate-300 text-xs font-medium transition';
+
+        document.getElementById('hudBoundary').textContent = isAbs ? 'Mur Absorbing' : 'Reflective Walls';
+        document.getElementById('hudBoundary').className = isAbs ? 'text-emerald-300' : 'text-amber-300';
+      },
+
+      updatePaletteLegend() {
+        const title = document.getElementById('legendTitle');
+        const bar = document.getElementById('legendBar');
+        const labels = document.getElementById('legendLabels');
+
+        if (TankRenderer.palette === 'classic') {
+          title.textContent = 'Classic Caustics';
+          bar.className = 'h-2 w-full rounded bg-gradient-to-r from-[#04182b] via-[#0284c7] to-[#e0f2fe]';
+          labels.innerHTML = '<span>Trough</span><span>Node</span><span>Crest</span>';
+        } else if (TankRenderer.palette === 'phase') {
+          title.textContent = 'Phase Diverging';
+          bar.className = 'h-2 w-full rounded bg-gradient-to-r from-[#28b6f6] via-[#0c0f16] to-[#f43f5e]';
+          labels.innerHTML = '<span>−Trough</span><span>0</span><span>+Crest</span>';
+        } else if (TankRenderer.palette === 'intensity') {
+          title.textContent = 'Wave Intensity ⟨u²⟩';
+          bar.className = 'h-2 w-full rounded bg-gradient-to-r from-[#0a0c14] via-[#d53287] to-[#fff9c4]';
+          labels.innerHTML = '<span>Nodal 0</span><span></span><span>Max I</span>';
+        } else {
+          title.textContent = 'Optical Schlieren';
+          bar.className = 'h-2 w-full rounded bg-gradient-to-r from-[#111827] via-[#9ca3af] to-[#f9fafb]';
+          labels.innerHTML = '<span>−∂u/∂r</span><span>0</span><span>+∂u/∂r</span>';
+        }
+      },
+
+      renderSourceList() {
+        const container = document.getElementById('sourceListContainer');
+        document.getElementById('telSourceCount').textContent = WaveSolver.sources.length;
+
+        if (WaveSolver.sources.length === 0) {
+          container.innerHTML = '<div class="text-[11px] text-slate-500 italic py-1">No point sources active. Click "+ Add Source" or use Tool #2.</div>';
+          return;
+        }
+
+        container.innerHTML = WaveSolver.sources.map((src, idx) => `
+          <div class="flex items-center justify-between bg-obsidian-850 border border-obsidian-800 rounded px-2 py-1 text-[11px] font-mono">
+            <span class="text-amber-300 font-semibold">S${idx + 1} <span class="text-slate-400 font-normal">(${Math.round(src.gx)}, ${Math.round(src.gy)})</span></span>
+            <button type="button" data-remove-id="${src.id}" class="remove-src-btn text-rose-400 hover:text-rose-300 px-1">Remove</button>
+          </div>
+        `).join('');
+
+        container.querySelectorAll('.remove-src-btn').forEach(btn => {
+          btn.addEventListener('click', () => {
+            const id = parseInt(btn.dataset.removeId, 10);
+            WaveSolver.removeSource(id);
+            this.renderSourceList();
+          });
+        });
+      },
+
+      setActiveTool(toolName) {
+        this.activeTool = toolName;
+        const hints = {
+          poke: 'Click or drag water to create circular wave impulses',
+          source: 'Drag existing sources (live Doppler!) or click empty water to place new source',
+          wall: 'Click and drag across the tank to draw reflective barrier walls',
+          erase: 'Click and drag over barriers to carve apertures or remove walls',
+          probe: 'Click or drag anywhere in the tank to reposition the displacement Probe'
+        };
+        document.getElementById('toolHintText').textContent = hints[toolName] || '';
+
+        document.querySelectorAll('.tool-btn').forEach(btn => {
+          const isMatch = btn.dataset.tool === toolName;
+          btn.className = isMatch
+            ? 'tool-btn px-3 py-1.5 rounded-lg text-xs font-medium transition flex items-center gap-1.5 bg-sky-500/20 text-sky-300 border border-sky-500/50'
+            : 'tool-btn px-3 py-1.5 rounded-lg text-xs font-medium transition flex items-center gap-1.5 bg-obsidian-850 text-slate-300 border border-obsidian-700 hover:bg-obsidian-800';
+        });
+      },
+
+      /** Converts pointer clientX/clientY to FDTD grid coordinates (gx, gy) */
+      clientToGrid(clientX, clientY) {
+        const canvas = TankRenderer.mainCanvas;
+        const rect = canvas.getBoundingClientRect();
+        const normX = (clientX - rect.left) / rect.width;
+        const normY = (clientY - rect.top) / rect.height;
+        return {
+          gx: Math.max(2, Math.min(NX - 3, normX * NX)),
+          gy: Math.max(2, Math.min(NY - 3, normY * NY))
+        };
+      },
+
+      bindCanvasEvents() {
+        const canvas = TankRenderer.mainCanvas;
+
+        const handleStart = (clientX, clientY) => {
+          this.isPointerDown = true;
+          const { gx, gy } = this.clientToGrid(clientX, clientY);
+
+          if (this.activeTool === 'poke') {
+            WaveSolver.injectSplash(gx, gy, this.brushRadius + 1, 2.5);
+          } else if (this.activeTool === 'wall') {
+            WaveSolver.paintWall(gx, gy, this.brushRadius, true);
+          } else if (this.activeTool === 'erase') {
+            WaveSolver.paintWall(gx, gy, this.brushRadius + 1, false);
+          } else if (this.activeTool === 'probe') {
+            WaveSolver.probe.gx = gx;
+            WaveSolver.probe.gy = gy;
+            WaveSolver.probe.peakValue = 0;
+            this.draggingProbe = true;
+          } else if (this.activeTool === 'source') {
+            // Check if user grabbed an existing source within 14 grid cells
+            let nearest = null;
+            let bestDist = 14;
+            for (const src of WaveSolver.sources) {
+              const d = Math.hypot(src.gx - gx, src.gy - gy);
+              if (d < bestDist) {
+                bestDist = d;
+                nearest = src;
+              }
+            }
+            if (nearest) {
+              this.draggedSource = nearest;
+            } else {
+              const added = WaveSolver.addSource(gx, gy);
+              if (added) {
+                this.draggedSource = added;
+                this.renderSourceList();
+              } else {
+                this.showToast('Maximum of 6 point sources reached');
+              }
+            }
+          }
+        };
+
+        const handleMove = (clientX, clientY) => {
+          if (!this.isPointerDown) return;
+          const { gx, gy } = this.clientToGrid(clientX, clientY);
+
+          if (this.activeTool === 'poke') {
+            WaveSolver.injectSplash(gx, gy, this.brushRadius, 1.3);
+          } else if (this.activeTool === 'wall') {
+            WaveSolver.paintWall(gx, gy, this.brushRadius, true);
+          } else if (this.activeTool === 'erase') {
+            WaveSolver.paintWall(gx, gy, this.brushRadius + 1, false);
+          } else if (this.activeTool === 'probe' && this.draggingProbe) {
+            WaveSolver.probe.gx = gx;
+            WaveSolver.probe.gy = gy;
+          } else if (this.activeTool === 'source' && this.draggedSource) {
+            this.draggedSource.gx = gx;
+            this.draggedSource.gy = gy;
+          }
+        };
+
+        const handleEnd = () => {
+          if (this.draggedSource) {
+            this.renderSourceList();
+          }
+          this.isPointerDown = false;
+          this.draggedSource = null;
+          this.draggingProbe = false;
+        };
+
+        canvas.addEventListener('mousedown', e => handleStart(e.clientX, e.clientY));
+        window.addEventListener('mousemove', e => handleMove(e.clientX, e.clientY));
+        window.addEventListener('mouseup', handleEnd);
+
+        canvas.addEventListener('touchstart', e => {
+          if (e.touches.length === 1) {
+            e.preventDefault();
+            handleStart(e.touches[0].clientX, e.touches[0].clientY);
+          }
+        }, { passive: false });
+
+        canvas.addEventListener('touchmove', e => {
+          if (e.touches.length === 1 && this.isPointerDown) {
+            e.preventDefault();
+            handleMove(e.touches[0].clientX, e.touches[0].clientY);
+          }
+        }, { passive: false });
+
+        canvas.addEventListener('touchend', handleEnd);
+      },
+
+      updateTelemetry() {
+        const lambda = WaveSolver.waveSpeed / WaveSolver.freq;
+        const period = 1.0 / WaveSolver.freq;
+        document.getElementById('telFreq').textContent = `${WaveSolver.freq.toFixed(1)} Hz`;
+        document.getElementById('telSpeed').textContent = `${WaveSolver.waveSpeed.toFixed(1)} cm/s`;
+        document.getElementById('telLambda').textContent = `${lambda.toFixed(2)} cm`;
+        document.getElementById('telPeriod').textContent = `${period.toFixed(2)} s`;
+
+        document.getElementById('probeInstVal').textContent = WaveSolver.probe.instValue.toFixed(2);
+        document.getElementById('probePeakVal').textContent = WaveSolver.probe.peakValue.toFixed(2);
+
+        // Context-aware PECTAA syllabus metric readout
+        const metricLabel = document.getElementById('telPresetMetricLabel');
+        if (this.activePreset === 'doubleSlit') {
+          // Double-slit geometry: slit separation d = 36 cells * 0.25 cm = 9.0 cm, screen distance L = (probe.gx - 130) * 0.25 cm
+          const dCm = 36 * DX;
+          const lCm = Math.max(1.0, Math.abs(WaveSolver.probe.gx - 130) * DX);
+          const fringeSpacing = (lambda * lCm) / dCm;
+          metricLabel.innerHTML = `Fringe Spacing: <strong class="text-amber-300">Δy = λL/d = ${fringeSpacing.toFixed(2)} cm</strong>`;
+        } else if (this.activePreset === 'doppler' && WaveSolver.sources.length > 0) {
+          const src = WaveSolver.sources[0];
+          const vs = src.speedCmPerSec;
+          const v = WaveSolver.waveSpeed;
+          const f0 = WaveSolver.freq;
+          const fAhead = vs < v ? f0 * (v / (v - vs)) : Infinity;
+          const fBehind = f0 * (v / (v + vs));
+          const fAheadStr = Number.isFinite(fAhead) ? `${fAhead.toFixed(1)}Hz` : 'Sonic';
+          metricLabel.innerHTML = `Doppler Shift: <strong class="text-amber-300">f₊=${fAheadStr}, f₋=${fBehind.toFixed(1)}Hz</strong>`;
+        } else if (WaveSolver.sources.length >= 2) {
+          // Path difference ΔS = |r2 - r1| at probe location
+          const s1 = WaveSolver.sources[0];
+          const s2 = WaveSolver.sources[1];
+          const r1 = Math.hypot(WaveSolver.probe.gx - s1.gx, WaveSolver.probe.gy - s1.gy) * DX;
+          const r2 = Math.hypot(WaveSolver.probe.gx - s2.gx, WaveSolver.probe.gy - s2.gy) * DX;
+          const deltaS = Math.abs(r2 - r1);
+          const orderM = deltaS / lambda;
+          const frac = Math.abs(orderM - Math.round(orderM));
+          const zoneType = frac < 0.15 ? 'Antinode' : (Math.abs(frac - 0.5) < 0.15 ? 'Node' : 'Mixed');
+          metricLabel.innerHTML = `Probe Path Diff: <strong class="text-purple-300">ΔS = ${orderM.toFixed(2)}λ (${zoneType})</strong>`;
+        } else {
+          metricLabel.innerHTML = `Dispersion: <strong class="text-sky-300">v = fλ (${WaveSolver.waveSpeed.toFixed(1)} cm/s)</strong>`;
+        }
+
+        // Update Doppler HUD if active
+        if (this.activePreset === 'doppler' && WaveSolver.sources.length > 0) {
+          const src = WaveSolver.sources[0];
+          const vs = src.speedCmPerSec;
+          const c = WaveSolver.waveSpeed;
+          const f0 = WaveSolver.freq;
+          const mach = vs / c;
+          const fAhead = vs < c ? f0 * (c / (c - vs)) : Infinity;
+          const fBehind = f0 * (c / (c + vs));
+
+          document.getElementById('dopVs').textContent = `${vs.toFixed(1)} cm/s`;
+          document.getElementById('dopMach').textContent = mach.toFixed(2);
+          document.getElementById('dopFAhead').textContent = Number.isFinite(fAhead) ? `${fAhead.toFixed(1)} Hz` : 'Sonic!';
+          document.getElementById('dopFBehind').textContent = `${fBehind.toFixed(1)} Hz`;
+        }
+      },
+
+      initUI() {
+        // Preset buttons
+        document.querySelectorAll('.preset-btn').forEach(btn => {
+          btn.addEventListener('click', () => this.loadPreset(btn.dataset.preset));
+        });
+
+        // Tool mode buttons
+        document.querySelectorAll('.tool-btn').forEach(btn => {
+          btn.addEventListener('click', () => this.setActiveTool(btn.dataset.tool));
+        });
+
+        // Transport controls
+        const btnPlayPause = document.getElementById('btnPlayPause');
+        btnPlayPause.addEventListener('click', () => {
+          this.isPlaying = !this.isPlaying;
+          document.getElementById('labelPlayPause').textContent = this.isPlaying ? 'Pause' : 'Resume';
+          document.getElementById('statusText').textContent = this.isPlaying ? 'FDTD SOLVER ACTIVE' : 'PAUSED';
+          document.getElementById('statusDot').className = this.isPlaying
+            ? 'w-2 h-2 rounded-full bg-sky-400 animate-ping'
+            : 'w-2 h-2 rounded-full bg-amber-400';
+        });
+
+        document.getElementById('btnStep').addEventListener('click', () => {
+          this.isPlaying = false;
+          document.getElementById('labelPlayPause').textContent = 'Resume';
+          document.getElementById('statusText').textContent = 'STEPPING FRAME';
+          document.getElementById('statusDot').className = 'w-2 h-2 rounded-full bg-emerald-400';
+
+          WaveSolver.stepSubframe(0.006);
+          WaveSolver.stepSubframe(0.006);
+          WaveSolver.sampleProbe();
+          this.updateTelemetry();
+        });
+
+        document.getElementById('btnClearWaves').addEventListener('click', () => {
+          WaveSolver.clearWaves();
+          this.showToast('Wave field zeroed');
+        });
+
+        document.getElementById('btnClearWalls').addEventListener('click', () => {
+          WaveSolver.clearWalls();
+          this.showToast('All barrier walls cleared');
+        });
+
+        // Brush slider
+        document.getElementById('sliderBrush').addEventListener('input', e => {
+          this.brushRadius = parseInt(e.target.value, 10);
+          document.getElementById('labelBrush').textContent = `${this.brushRadius}px`;
+        });
+
+        // Physics sliders
+        document.getElementById('sliderFreq').addEventListener('input', e => {
+          WaveSolver.freq = parseFloat(e.target.value);
+          document.getElementById('valFreq').textContent = `${WaveSolver.freq.toFixed(1)} Hz`;
+        });
+
+        document.getElementById('sliderSpeed').addEventListener('input', e => {
+          WaveSolver.waveSpeed = parseFloat(e.target.value);
+          document.getElementById('valSpeed').textContent = `${WaveSolver.waveSpeed.toFixed(1)} cm/s`;
+        });
+
+        document.getElementById('sliderPhase').addEventListener('input', e => {
+          WaveSolver.phaseOffsetDeg = parseInt(e.target.value, 10);
+          document.getElementById('valPhase').textContent = `${WaveSolver.phaseOffsetDeg}°`;
+        });
+
+        document.getElementById('sliderDamping').addEventListener('input', e => {
+          WaveSolver.damping = parseFloat(e.target.value);
+          document.getElementById('valDamping').textContent = WaveSolver.damping.toFixed(4);
+        });
+
+        document.getElementById('sliderSourceSpeed').addEventListener('input', e => {
+          const vs = parseFloat(e.target.value);
+          document.getElementById('valSourceSpeed').textContent = `${vs.toFixed(1)} cm/s`;
+          if (WaveSolver.sources.length > 0) {
+            WaveSolver.sources[0].speedCmPerSec = vs;
+          }
+        });
+
+        document.getElementById('chkPlaneWave').addEventListener('change', e => {
+          WaveSolver.planeWaveEnabled = e.target.checked;
+        });
+
+        // Palette selector
+        document.getElementById('selectPalette').addEventListener('change', e => {
+          TankRenderer.palette = e.target.value;
+          this.updatePaletteLegend();
+        });
+
+        // Boundary toggles
+        document.getElementById('btnBoundAbsorb').addEventListener('click', () => {
+          WaveSolver.boundaryMode = 'absorbing';
+          this.updateBoundaryButtons();
+        });
+        document.getElementById('btnBoundReflect').addEventListener('click', () => {
+          WaveSolver.boundaryMode = 'reflective';
+          this.updateBoundaryButtons();
+        });
+
+        // Add source button
+        document.getElementById('btnAddSource').addEventListener('click', () => {
+          const rx = 90 + Math.random() * (NX - 180);
+          const ry = 50 + Math.random() * (NY - 100);
+          const added = WaveSolver.addSource(rx, ry);
+          if (added) {
+            this.renderSourceList();
+            this.showToast(`Added Point Source S${WaveSolver.sources.length}`);
+          } else {
+            this.showToast('Maximum of 6 point sources reached');
+          }
+        });
+
+        // Theory modal
+        const modal = document.getElementById('theoryModal');
+        document.getElementById('btnTheoryModal').addEventListener('click', () => modal.classList.remove('hidden'));
+        document.getElementById('closeTheoryModal').addEventListener('click', () => modal.classList.add('hidden'));
+        modal.addEventListener('click', e => {
+          if (e.target === modal) modal.classList.add('hidden');
+        });
+      }
+    };
+
+    /**
+     * ============================================================================
+     * 5. MAIN ANIMATION LOOP & INITIALIZATION
+     * ============================================================================
+     */
+    function animate(now) {
+      // FPS counter update every 500ms
+      LabApp.frameCount++;
+      if (now - LabApp.lastFpsTime >= 500) {
+        LabApp.currentFps = Math.round((LabApp.frameCount * 1000) / (now - LabApp.lastFpsTime));
+        document.getElementById('telFps').textContent = `${LabApp.currentFps} FPS`;
+        LabApp.frameCount = 0;
+        LabApp.lastFpsTime = now;
+      }
+
+      if (LabApp.isPlaying) {
+        // Execute 2 CFL-stable FDTD substeps per frame for crisp wave propagation
+        WaveSolver.stepSubframe(0.006);
+        WaveSolver.stepSubframe(0.006);
+        WaveSolver.sampleProbe();
+        LabApp.updateTelemetry();
+      }
+
+      TankRenderer.render();
+      Oscilloscope.render();
+
+      requestAnimationFrame(animate);
+    }
+
+    window.onload = function () {
+      WaveSolver.init();
+      TankRenderer.init(document.getElementById('tankCanvas'));
+      Oscilloscope.init(document.getElementById('scopeCanvas'));
+
+      LabApp.initUI();
+      LabApp.bindCanvasEvents();
+      LabApp.loadPreset('twoSource');
+
+      window.addEventListener('resize', () => {
+        TankRenderer.resize();
+        Oscilloscope.resize();
+      });
+
+      requestAnimationFrame(animate);
+    };
+  </script>
+</body>
+</html>
