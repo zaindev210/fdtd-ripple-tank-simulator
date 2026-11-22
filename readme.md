@@ -2,7 +2,7 @@
 
 > **Suggested GitHub Repository Name:** `fdtd-ripple-tank-simulator`
 >
-> **Live Demo:** `[Insert Your GitHub Pages Link Here]`
+> > **Live Demo:** [zaindev210.github.io/fdtd-ripple-tank-simulator](https://zaindev210.github.io/fdtd-ripple-tank-simulator/)
 
 A real-time 2D wave physics laboratory built in pure JavaScript and HTML5 Canvas for **PECTAA ICS / FSc Physics** demonstrations. Powered by a Finite-Difference Time-Domain (`FDTD`) wave equation solver over an `ImageData` pixel buffer, this simulator demonstrates wave superposition, constructive/destructive interference, single- and double-slit diffraction, Lloyd's mirror, parabolic focusing, and the Doppler effect.
 
